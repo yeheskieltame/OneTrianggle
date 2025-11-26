@@ -28,15 +28,32 @@ export default function HomePage() {
     <main className="min-h-screen relative overflow-hidden">
       <Navigation />
 
-      {/* Background Effects */}
-      <div className="fixed inset-0 pointer-events-none">
+      {/* Video Background for Hero */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        {/* Video Element */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/Digital_Void_Mascot_Battle.mp4" type="video/mp4" />
+        </video>
+
+        {/* Dark Overlay to darken video */}
+        <div className="absolute inset-0 bg-black/40" />
+
+        {/* Additional gradient overlay for better text visibility */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_var(--background)_70%)]" />
+
+        {/* Colored glow effects */}
         <div className="absolute top-1/4 left-1/4 w-48 sm:w-96 h-48 sm:h-96 bg-primary/5 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-48 sm:w-96 h-48 sm:h-96 bg-accent/5 rounded-full blur-3xl" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_var(--background)_70%)]" />
       </div>
 
       {/* Hero Section */}
-      <section className="relative pt-28 sm:pt-32 pb-12 sm:pb-20 px-3 sm:px-4">
+      <section className="relative pt-28 sm:pt-32 pb-12 sm:pb-20 px-3 sm:px-4 z-10">
         <div className="max-w-6xl mx-auto text-center">
           {/* Floating Logo with RPS Icons */}
           <div className="relative inline-block mb-6 sm:mb-8">
@@ -102,7 +119,7 @@ export default function HomePage() {
       </section>
 
       {/* Stats Section */}
-      <section className="relative py-10 sm:py-16 px-3 sm:px-4">
+      <section className="relative py-10 sm:py-16 px-3 sm:px-4 z-10">
         <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           <StatsCard icon={Coins} label={t("stats.tvl")} value="$2.5M" trend="+15%" />
           <StatsCard icon={Users} label={t("stats.players")} value="1,432" trend="+124" />
@@ -142,7 +159,7 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="relative py-12 sm:py-20 px-3 sm:px-4">
+      <section className="relative py-12 sm:py-20 px-3 sm:px-4 z-10">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {[
@@ -167,7 +184,7 @@ export default function HomePage() {
       </section>
 
       {/* Innovation Section */}
-      <section className="relative py-12 sm:py-20 px-3 sm:px-4">
+      <section className="relative py-12 sm:py-20 px-3 sm:px-4 z-10">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8 sm:mb-12">
             <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-accent/10 text-accent mb-4">
@@ -197,7 +214,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-12 sm:py-20 px-3 sm:px-4">
+      <section className="relative py-12 sm:py-20 px-3 sm:px-4 z-10">
         <div className="max-w-4xl mx-auto text-center">
           <div className="p-8 sm:p-12 rounded-3xl border border-border bg-card/50 backdrop-blur-sm relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5" />
@@ -222,7 +239,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="relative py-8 sm:py-10 px-3 sm:px-4 border-t border-border">
+      <footer className="relative py-8 sm:py-10 px-3 sm:px-4 border-t border-border z-10">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-2">
             <div className="relative w-5 h-5 sm:w-6 sm:h-6">
