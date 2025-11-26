@@ -5,14 +5,16 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { useLanguage } from "@/contexts/language-context"
+import { useAudio } from "@/contexts/audio-context"
 import { Button } from "@/components/ui/button"
-import { Menu, X, Globe } from "lucide-react"
+import { Menu, X, Globe, Volume2, VolumeX } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ConnectButton, useCurrentAccount } from '@mysten/dapp-kit'
 
 export function Navigation() {
   const pathname = usePathname()
   const { language, setLanguage, t } = useLanguage()
+  const { isPlaying, togglePlay } = useAudio()
   const currentAccount = useCurrentAccount()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -61,6 +63,21 @@ export function Navigation() {
 
         {/* Right Side */}
         <div className="flex items-center gap-2">
+          {/* Music Toggle */}
+          <button
+            onClick={togglePlay}
+            className={cn(
+              "flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium transition-all",
+              isPlaying
+                ? "text-primary bg-primary/10 hover:bg-primary/20"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+            )}
+            title={isPlaying ? "Pause music" : "Play music"}
+          >
+            {isPlaying ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            <span className="hidden sm:inline">{isPlaying ? "ON" : "OFF"}</span>
+          </button>
+
           {/* Language Toggle */}
           <button
             onClick={() => setLanguage(language === "en" ? "cn" : "en")}

@@ -6,10 +6,12 @@ import { Orbitron, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { LanguageProvider } from "@/contexts/language-context"
 import { ContractProvider } from "@/contexts/contract-context"
+import { AudioProvider } from "@/contexts/audio-context"
 import { SuiClientProvider, WalletProvider } from '@mysten/dapp-kit'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RPC_URL } from '@/lib/onechain'
 import { Toaster } from "@/components/ui/sonner"
+import { MusicModal } from "@/components/music-modal"
 import "@mysten/dapp-kit/dist/index.css"
 import "./globals.css"
 
@@ -43,7 +45,12 @@ export default function RootLayout({
           <SuiClientProvider networks={networks} defaultNetwork="onechain-testnet">
             <WalletProvider autoConnect>
               <ContractProvider>
-                <LanguageProvider>{children}</LanguageProvider>
+                <AudioProvider>
+                  <LanguageProvider>
+                    {children}
+                    <MusicModal />
+                  </LanguageProvider>
+                </AudioProvider>
               </ContractProvider>
             </WalletProvider>
           </SuiClientProvider>
