@@ -7,11 +7,12 @@ import { useLanguage } from "@/contexts/language-context"
 import { Button } from "@/components/ui/button"
 import { Triangle, Wallet, Menu, X, Globe } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ConnectButton, useCurrentAccount } from '@mysten/dapp-kit'
 
 export function Navigation() {
   const pathname = usePathname()
   const { language, setLanguage, t } = useLanguage()
-  const [isConnected, setIsConnected] = useState(false)
+  const currentAccount = useCurrentAccount()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const navItems = [
@@ -62,18 +63,16 @@ export function Navigation() {
           </button>
 
           {/* Connect Wallet */}
-          <Button
-            onClick={() => setIsConnected(!isConnected)}
-            className={cn(
-              "rounded-xl font-medium transition-all",
-              isConnected
-                ? "bg-primary/20 text-primary border border-primary/50 hover:bg-primary/30"
-                : "bg-primary text-primary-foreground hover:bg-primary/90 glow-cyan",
-            )}
-          >
-            <Wallet className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">{isConnected ? t("nav.connected") : t("nav.connect")}</span>
-          </Button>
+          {currentAccount && (
+            <div className="hidden sm:flex items-center px-3 py-2 rounded-xl bg-primary/10 border border-primary/30">
+              <span className="text-xs text-muted-foreground font-mono">
+                {currentAccount.address.slice(0, 6)}...{currentAccount.address.slice(-4)}
+              </span>
+            </div>
+          )}
+          <div className="wallet-button-wrapper">
+            <ConnectButton />
+          </div>
 
           {/* Mobile Menu Toggle */}
           <button

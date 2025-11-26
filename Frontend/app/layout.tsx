@@ -1,17 +1,28 @@
+"use client"
+
 import type React from "react"
 import type { Metadata } from "next"
 import { Orbitron, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { LanguageProvider } from "@/contexts/language-context"
+import { ContractProvider } from "@/contexts/contract-context"
+import { SuiClientProvider, WalletProvider } from '@mysten/dapp-kit'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { RPC_URL } from '@/lib/onechain'
+import { Toaster } from "@/components/ui/sonner"
+import "@mysten/dapp-kit/dist/index.css"
 import "./globals.css"
 
 const orbitron = Orbitron({ subsets: ["latin"], variable: "--font-orbitron" })
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
 
-export const metadata: Metadata = {
-  title: "OneTriangle | No-Loss Strategy GameFi",
-  description: "A gamified savings protocol merging DeFi with Rock-Paper-Scissors strategy",
-    generator: 'v0.app'
+const queryClient = new QueryClient()
+
+// OneChain network configuration
+const networks = {
+  'onechain-testnet': {
+    url: RPC_URL,
+  },
 }
 
 export default function RootLayout({
@@ -21,8 +32,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <title>OneTriangle | No-Loss Strategy GameFi</title>
+        <meta name="description" content="A gamified savings protocol merging DeFi with Rock-Paper-Scissors strategy" />
+      </head>
       <body className={`${orbitron.variable} ${geistMono.variable} font-sans antialiased`}>
-        <LanguageProvider>{children}</LanguageProvider>
+        <QueryClientProvider client={queryClient}>
+          <SuiClientProvider networks={networks} defaultNetwork="onechain-testnet">
+            <WalletProvider autoConnect>
+              <ContractProvider>
+                <LanguageProvider>{children}</LanguageProvider>
+              </ContractProvider>
+            </WalletProvider>
+          </SuiClientProvider>
+        </QueryClientProvider>
+        <Toaster />
         <Analytics />
       </body>
     </html>

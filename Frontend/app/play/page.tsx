@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { useLanguage } from "@/contexts/language-context"
+import { useContract } from "@/contexts/contract-context"
+import { useDeposit, useWithdraw } from "@/hooks/use-contract-transactions"
+import { useUserCoins } from "@/hooks/use-user-coins"
+import { useCurrentAccount } from "@mysten/dapp-kit"
 import { Navigation } from "@/components/navigation"
 import { FactionCard } from "@/components/faction-card"
 import { FactionIcon } from "@/components/faction-icons"
@@ -9,8 +13,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Coins, Clock, TrendingUp, History, Wallet, Calculator, Zap, DollarSign } from "lucide-react"
-
-type Faction = "rock" | "paper" | "scissors"
+import { u64ToNumber, formatUSDC } from "@/lib/onechain"
+import { Faction, FACTION_REVERSE } from "@/types/contract"
 
 interface EpochHistory {
   epoch: number
@@ -23,18 +27,33 @@ interface EpochHistory {
 
 export default function PlayPage() {
   const { t } = useLanguage()
+  const { vault, userReceipts, isLoading: contractLoading, refetch } = useContract()
+  const currentAccount = useCurrentAccount()
+  const { deposit, isPending: isDepositing } = useDeposit()
+  const { withdraw, isPending: isWithdrawing } = useWithdraw()
+  const { coins, totalBalance, isLoading: coinsLoading, refetch: refetchCoins } = useUserCoins()
+
   const [selectedFaction, setSelectedFaction] = useState<Faction | null>(null)
   const [depositAmount, setDepositAmount] = useState("")
-  const [timeLeft, setTimeLeft] = useState(259200)
+  const [timeLeft, setTimeLeft] = useState(0)
 
-  const [distribution, setDistribution] = useState({
-    rock: 35,
-    paper: 40,
-    scissors: 25,
-  })
+  // Calculate real-time values from vault state
+  const currentEpoch = vault ? u64ToNumber(vault.current_epoch) : 0
+  const epochEndTime = vault ? u64ToNumber(vault.epoch_end_time) : 0
+  const rockPool = vault ? u64ToNumber(vault.rock_pool) : 0
+  const paperPool = vault ? u64ToNumber(vault.paper_pool) : 0
+  const scissorsPool = vault ? u64ToNumber(vault.scissors_pool) : 0
+  const totalDeposited = rockPool + paperPool + scissorsPool
+  const yieldPool = vault ? u64ToNumber(vault.yield_pool) : 0
+  const totalTVL = totalDeposited
+  const epochYield = yieldPool
 
-  const totalTVL = 2543890
-  const epochYield = 5234
+  // Calculate percentages
+  const distribution = {
+    rock: totalDeposited > 0 ? Math.round((rockPool / totalDeposited) * 100) : 33,
+    paper: totalDeposited > 0 ? Math.round((paperPool / totalDeposited) * 100) : 33,
+    scissors: totalDeposited > 0 ? Math.round((scissorsPool / totalDeposited) * 100) : 34,
+  }
 
   const calculateScore = (faction: Faction) => {
     const { rock, paper, scissors } = distribution
@@ -57,18 +76,46 @@ export default function PlayPage() {
     return Object.entries(scores).reduce((a, b) => (a[1] > b[1] ? a : b))[0] as Faction
   }
 
-  const history: EpochHistory[] = [
-    { epoch: 41, winner: "paper", yield: 4523, rockPct: 45, paperPct: 30, scissorsPct: 25 },
-    { epoch: 40, winner: "scissors", yield: 3892, rockPct: 35, paperPct: 40, scissorsPct: 25 },
-    { epoch: 39, winner: "rock", yield: 5124, rockPct: 25, paperPct: 35, scissorsPct: 40 },
-  ]
+  // TODO: Fetch real history from blockchain events
+  const history: EpochHistory[] = []
 
+  // Real-time countdown from blockchain epoch end time
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 259200))
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
+    const updateTime = () => {
+      const now = Date.now()
+      const remaining = Math.max(0, Math.floor((epochEndTime - now) / 1000))
+      setTimeLeft(remaining)
+    }
+    updateTime()
+    const interval = setInterval(updateTime, 1000)
+    return () => clearInterval(interval)
+  }, [epochEndTime])
+
+  // Withdrawable receipts (from previous epoch)
+  const withdrawableReceipts = userReceipts.filter(
+    (r) => u64ToNumber(r.epoch_id) === currentEpoch - 1
+  )
+
+  // Handle deposit
+  const handleDeposit = async () => {
+    if (!selectedFaction || !depositAmount || !currentAccount || coins.length === 0) {
+      return
+    }
+
+    const amountInBaseUnits = BigInt(Math.floor(Number.parseFloat(depositAmount) * 1_000_000))
+
+    try {
+      await deposit(coins, amountInBaseUnits, selectedFaction, async () => {
+        // Refetch everything after successful deposit
+        await Promise.all([refetch(), refetchCoins()])
+        setDepositAmount("")
+        setSelectedFaction(null)
+      })
+    } catch (err) {
+      // Error already handled in deposit hook
+      console.error('Deposit error:', err)
+    }
+  }
 
   const formatTime = (seconds: number) => {
     const d = Math.floor(seconds / 86400)
@@ -105,7 +152,7 @@ export default function PlayPage() {
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                 <span className="text-muted-foreground">{t("play.epoch")}:</span>
-                <span className="font-bold font-mono">42</span>
+                <span className="font-bold font-mono">{currentEpoch || "..."}</span>
               </div>
               <div className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-chart-3/10 border border-chart-3/30">
                 <span className="text-chart-3 text-xs sm:text-sm font-medium">{t("play.depositPhase")}</span>
@@ -126,13 +173,13 @@ export default function PlayPage() {
                 <Card className="border-border bg-card/50 backdrop-blur-sm">
                   <CardContent className="p-3">
                     <div className="text-xs text-muted-foreground mb-1">Total TVL</div>
-                    <div className="font-bold font-mono text-lg">${(totalTVL / 1000000).toFixed(2)}M</div>
+                    <div className="font-bold font-mono text-lg">${formatUSDC(totalTVL)}</div>
                   </CardContent>
                 </Card>
                 <Card className="border-primary/30 bg-primary/5 backdrop-blur-sm">
                   <CardContent className="p-3">
                     <div className="text-xs text-muted-foreground mb-1">Epoch Yield</div>
-                    <div className="font-bold font-mono text-lg text-primary">${(epochYield / 1000).toFixed(1)}K</div>
+                    <div className="font-bold font-mono text-lg text-primary">${formatUSDC(epochYield)}</div>
                   </CardContent>
                 </Card>
               </div>
@@ -247,39 +294,46 @@ export default function PlayPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2 sm:space-y-3">
-                    {history.map((h) => (
-                      <div
-                        key={h.epoch}
-                        className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-secondary/50 border border-border"
-                      >
-                        <div className="flex items-center gap-2 sm:gap-4">
-                          <span className="text-muted-foreground font-mono text-xs sm:text-sm">#{h.epoch}</span>
-                          <div className="flex items-center gap-1.5 sm:gap-2">
-                            <FactionIcon
-                              faction={h.winner}
-                              className={`w-6 h-6 sm:w-8 sm:h-8 ${factionColor[h.winner]}`}
-                            />
-                            <span className="font-bold capitalize text-sm sm:text-base hidden sm:inline">
-                              {h.winner}
-                            </span>
+                  {history.length === 0 ? (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <p className="text-xs sm:text-sm">No history available yet</p>
+                      <p className="text-[10px] sm:text-xs mt-1">History will be available after first epoch settlement</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 sm:space-y-3">
+                      {history.map((h) => (
+                        <div
+                          key={h.epoch}
+                          className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-secondary/50 border border-border"
+                        >
+                          <div className="flex items-center gap-2 sm:gap-4">
+                            <span className="text-muted-foreground font-mono text-xs sm:text-sm">#{h.epoch}</span>
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                              <FactionIcon
+                                faction={h.winner}
+                                className={`w-6 h-6 sm:w-8 sm:h-8 ${factionColor[h.winner]}`}
+                              />
+                              <span className="font-bold capitalize text-sm sm:text-base hidden sm:inline">
+                                {h.winner}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-chart-3 font-bold font-mono text-sm sm:text-base">
+                              ${h.yield.toLocaleString()}
+                            </div>
+                            <div className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 justify-end">
+                              <span className="text-rock">{h.rockPct}%</span>
+                              <span className="text-muted-foreground/50">|</span>
+                              <span className="text-paper">{h.paperPct}%</span>
+                              <span className="text-muted-foreground/50">|</span>
+                              <span className="text-scissors">{h.scissorsPct}%</span>
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-chart-3 font-bold font-mono text-sm sm:text-base">
-                            ${h.yield.toLocaleString()}
-                          </div>
-                          <div className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1 justify-end">
-                            <span className="text-rock">{h.rockPct}%</span>
-                            <span className="text-muted-foreground/50">|</span>
-                            <span className="text-paper">{h.paperPct}%</span>
-                            <span className="text-muted-foreground/50">|</span>
-                            <span className="text-scissors">{h.scissorsPct}%</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -298,14 +352,14 @@ export default function PlayPage() {
                   <div className="flex justify-between items-center p-4 rounded-xl bg-secondary/50">
                     <span className="text-muted-foreground">{t("play.totalDeposited")}</span>
                     <div className="text-right">
-                      <span className="font-bold font-mono text-xl">${totalTVL.toLocaleString()}</span>
+                      <span className="font-bold font-mono text-xl">${formatUSDC(totalTVL)}</span>
                       <span className="text-muted-foreground ml-1">USDC</span>
                     </div>
                   </div>
                   <div className="flex justify-between items-center p-4 rounded-xl bg-primary/10 border border-primary/30">
                     <span className="text-muted-foreground">{t("play.epochYield")}</span>
                     <div className="text-right">
-                      <span className="font-bold font-mono text-xl text-primary">${epochYield.toLocaleString()}</span>
+                      <span className="font-bold font-mono text-xl text-primary">${formatUSDC(epochYield)}</span>
                       <span className="text-primary/70 ml-1">USDC</span>
                     </div>
                   </div>
@@ -323,8 +377,12 @@ export default function PlayPage() {
                 <CardContent className="space-y-3 sm:space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs sm:text-sm">
-                      <span className="text-muted-foreground">USDC Balance</span>
-                      <span className="font-mono">10,000.00 USDC</span>
+                      <span className="text-muted-foreground">OCT Balance</span>
+                      {coinsLoading ? (
+                        <span className="font-mono">Loading...</span>
+                      ) : (
+                        <span className="font-mono">{formatUSDC(totalBalance.toString())} OCT</span>
+                      )}
                     </div>
                     <div className="relative">
                       <Input
@@ -333,17 +391,22 @@ export default function PlayPage() {
                         value={depositAmount}
                         onChange={(e) => setDepositAmount(e.target.value)}
                         className="pr-20 sm:pr-24 text-base sm:text-lg font-mono bg-secondary border-border"
+                        disabled={!currentAccount || coinsLoading}
                       />
                       <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 sm:gap-2">
                         <button
-                          onClick={() => setDepositAmount("10000")}
-                          className="text-xs text-primary font-medium hover:text-primary/80"
+                          onClick={() => setDepositAmount(formatUSDC(totalBalance.toString()))}
+                          className="text-xs text-primary font-medium hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={!currentAccount || coinsLoading || totalBalance === 0n}
                         >
                           MAX
                         </button>
-                        <span className="text-muted-foreground text-xs sm:text-sm">USDC</span>
+                        <span className="text-muted-foreground text-xs sm:text-sm">OCT</span>
                       </div>
                     </div>
+                    {depositAmount && Number.parseFloat(depositAmount) < 1 && (
+                      <p className="text-xs text-destructive">Minimum deposit: 1 OCT</p>
+                    )}
                   </div>
 
                   {selectedFaction && (
@@ -361,7 +424,7 @@ export default function PlayPage() {
                       <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-muted-foreground">{t("play.potentialYield")}</span>
                         <span className="font-mono text-chart-3">
-                          ~${((Number.parseFloat(depositAmount) || 0) * (epochYield / totalTVL)).toFixed(2)}
+                          ~${totalTVL > 0 ? ((Number.parseFloat(depositAmount) || 0) * 1_000_000 * epochYield / totalTVL / 1_000_000).toFixed(2) : '0.00'}
                         </span>
                       </div>
                       <div className="flex justify-between text-xs sm:text-sm">
@@ -372,10 +435,29 @@ export default function PlayPage() {
                   )}
 
                   <Button
+                    onClick={handleDeposit}
                     className="w-full rounded-xl text-base sm:text-lg py-5 sm:py-6 glow-cyan"
-                    disabled={!selectedFaction || !depositAmount}
+                    disabled={
+                      !selectedFaction ||
+                      !depositAmount ||
+                      !currentAccount ||
+                      contractLoading ||
+                      coinsLoading ||
+                      isDepositing ||
+                      Number.parseFloat(depositAmount) < 1 ||
+                      coins.length === 0
+                    }
                   >
-                    {t("play.depositBtn")}
+                    {!currentAccount
+                      ? "Connect Wallet"
+                      : contractLoading || coinsLoading
+                      ? "Loading..."
+                      : isDepositing
+                      ? "Depositing..."
+                      : coins.length === 0
+                      ? "No OCT Balance"
+                      : t("play.depositBtn")
+                    }
                   </Button>
 
                   <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
@@ -393,10 +475,52 @@ export default function PlayPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-6 sm:py-8 text-muted-foreground">
-                    <Wallet className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 opacity-50" />
-                    <p className="text-xs sm:text-sm">Connect wallet to view</p>
-                  </div>
+                  {!currentAccount ? (
+                    <div className="text-center py-6 sm:py-8 text-muted-foreground">
+                      <Wallet className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3 opacity-50" />
+                      <p className="text-xs sm:text-sm">Connect wallet to view</p>
+                    </div>
+                  ) : userReceipts.length === 0 ? (
+                    <div className="text-center py-6 sm:py-8 text-muted-foreground">
+                      <p className="text-xs sm:text-sm">No deposits yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {userReceipts.map((receipt) => (
+                        <div
+                          key={receipt.id}
+                          className="p-3 rounded-xl bg-secondary/50 border border-border"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <FactionIcon
+                                faction={FACTION_REVERSE[receipt.faction as keyof typeof FACTION_REVERSE]}
+                                className="w-5 h-5"
+                              />
+                              <span className="text-sm font-bold capitalize">
+                                {FACTION_REVERSE[receipt.faction as keyof typeof FACTION_REVERSE]}
+                              </span>
+                            </div>
+                            <span className="text-sm font-mono">${formatUSDC(receipt.amount)}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Epoch {receipt.epoch_id}</span>
+                            {withdrawableReceipts.find(r => r.id === receipt.id) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => withdraw(receipt.id, refetch)}
+                                disabled={isWithdrawing}
+                                className="h-7 text-xs"
+                              >
+                                Withdraw
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
