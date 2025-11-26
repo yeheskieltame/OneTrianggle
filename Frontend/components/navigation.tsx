@@ -1,11 +1,12 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { useLanguage } from "@/contexts/language-context"
 import { Button } from "@/components/ui/button"
-import { Triangle, Wallet, Menu, X, Globe } from "lucide-react"
+import { Menu, X, Globe } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ConnectButton, useCurrentAccount } from '@mysten/dapp-kit'
 
@@ -26,9 +27,16 @@ export function Navigation() {
       <div className="backdrop-blur-xl bg-card/80 border border-border rounded-2xl px-4 py-3 flex items-center justify-between shadow-lg shadow-primary/10">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="relative">
-            <Triangle className="w-8 h-8 text-primary fill-primary/20 group-hover:fill-primary/40 transition-all" />
-            <div className="absolute inset-0 blur-md bg-primary/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative w-8 h-8 sm:w-10 sm:h-10">
+            <Image
+              src="/onetriangle-logo.png"
+              alt="OneTriangle Logo"
+              width={40}
+              height={40}
+              className="object-contain transition-all group-hover:scale-110"
+              priority
+            />
+            <div className="absolute inset-0 blur-md bg-primary/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>
           <span className="font-bold text-lg tracking-wider glow-text-cyan hidden sm:block">OneTriangle</span>
         </Link>

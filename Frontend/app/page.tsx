@@ -6,8 +6,8 @@ import { StatsCard } from "@/components/stats-card"
 import { FactionIcon } from "@/components/faction-icons"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import Image from "next/image"
 import {
-  Triangle,
   Shield,
   Brain,
   Coins,
@@ -38,9 +38,18 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative pt-28 sm:pt-32 pb-12 sm:pb-20 px-3 sm:px-4">
         <div className="max-w-6xl mx-auto text-center">
-          {/* Floating Triangle with RPS Icons */}
+          {/* Floating Logo with RPS Icons */}
           <div className="relative inline-block mb-6 sm:mb-8">
-            <Triangle className="w-16 h-16 sm:w-24 sm:h-24 text-primary fill-primary/20 animate-float" />
+            <div className="relative w-16 h-16 sm:w-24 sm:h-24 animate-float">
+              <Image
+                src="/onetriangle-logo.png"
+                alt="OneTriangle Logo"
+                width={96}
+                height={96}
+                className="object-contain"
+                priority
+              />
+            </div>
             <div className="absolute inset-0 blur-2xl bg-primary/30 rounded-full" />
             <div className="absolute -top-2 -left-8 sm:-left-12 animate-float" style={{ animationDelay: "0.2s" }}>
               <FactionIcon faction="rock" className="w-6 h-6 sm:w-8 sm:h-8 text-rock" />
@@ -216,7 +225,15 @@ export default function HomePage() {
       <footer className="relative py-8 sm:py-10 px-3 sm:px-4 border-t border-border">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-2">
-            <Triangle className="w-5 h-5 sm:w-6 sm:h-6 text-primary fill-primary/20" />
+            <div className="relative w-5 h-5 sm:w-6 sm:h-6">
+              <Image
+                src="/onetriangle-logo.png"
+                alt="OneTriangle Logo"
+                width={24}
+                height={24}
+                className="object-contain"
+              />
+            </div>
             <span className="font-bold tracking-wider text-sm sm:text-base">OneTriangle</span>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground">Built on OneChain (Sui Fork)</p>

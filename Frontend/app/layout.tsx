@@ -35,6 +35,8 @@ export default function RootLayout({
       <head>
         <title>OneTriangle | No-Loss Strategy GameFi</title>
         <meta name="description" content="A gamified savings protocol merging DeFi with Rock-Paper-Scissors strategy" />
+        <link rel="icon" type="image/png" href="/onetriangle-logo.png" />
+        <link rel="apple-touch-icon" href="/onetriangle-logo.png" />
       </head>
       <body className={`${orbitron.variable} ${geistMono.variable} font-sans antialiased`}>
         <QueryClientProvider client={queryClient}>
