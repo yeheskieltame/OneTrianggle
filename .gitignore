@@ -1,0 +1,96 @@
+# OneTriangle .gitignore
+
+# ============================================
+# SENSITIVE FILES - NEVER COMMIT
+# ============================================
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+private_key*
+*.wallet
+
+# Backend deployment artifacts (contain private keys)
+Backend/.env
+Backend/deployment_output.json
+
+# ============================================
+# Move / OneChain Build Artifacts
+# ============================================
+Backend/build/
+Backend/.movement/
+**/Move.lock
+
+# ============================================
+# Next.js / Frontend
+# ============================================
+Frontend/.next/
+Frontend/out/
+Frontend/build/
+Frontend/dist/
+
+# Node modules
+**/node_modules/
+**/package-lock.json
+**/yarn.lock
+**/pnpm-lock.yaml
+
+# Testing
+Frontend/coverage/
+Frontend/.nyc_output/
+
+# ============================================
+# IDE / Editor
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# ============================================
+# OS Files
+# ============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ============================================
+# Logs
+# ============================================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+
+# ============================================
+# Temporary Files
+# ============================================
+*.tmp
+*.temp
+.cache/
+.parcel-cache/
+
+# ============================================
+# Documentation (Internal)
+# ============================================
+CLAUDE.md
+onechaindocs.md
+
+# ============================================
+# Keep These Files (Public/Safe)
+# ============================================
+# !Backend/deployment.json (contains public deployment info only)
+# !Frontend/.env.example
+# !README.md
+# !QUICKSTART.md

@@ -1,0 +1,12 @@
+{
+  "network": "onechain-testnet",
+  "rpc": "https://rpc-testnet.onelabs.cc:443",
+  "packageId": "0xbe5ff682041431df2eb1033bee50f8ee81708dd74084b48ec8a69d490ba68762",
+  "gameVaultId": "0xbeeb3463d50eec7704cd8b8bb8443f4eda38116c1bc8c46b6c240388c77546d9",
+  "adminCapId": "0x319d5df37bbad14ce35d62ed0bcc389c68fb9877518b9f1443a653efeb2d4c61",
+  "upgradeCapId": "0x7af359790051c93a5e7538babcc9eb47806505fd45b34507c82c06923d56d44e",
+  "deployedAt": "2025-11-26T02:20:01.621Z",
+  "deployedBy": "0x9e3203feda10c56d23f0e2ffd0149eb16b4962179adb0563d8194e5f56c4539e",
+  "transactionDigest": "Q6qe9UBTDeShDVjDdxoJJvWuhZ3FsUvQsUrL6SVxzuU",
+  "gasUsed": "35787480"
+}
