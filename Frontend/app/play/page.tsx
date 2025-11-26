@@ -46,7 +46,12 @@ export default function PlayPage() {
   const totalDeposited = rockPool + paperPool + scissorsPool
   const yieldPool = vault ? u64ToNumber(vault.yield_pool) : 0
   const totalTVL = totalDeposited
-  const epochYield = yieldPool
+
+  // Calculate epoch yield (actual or estimated)
+  const ESTIMATED_APY = 0.15 // 15% APY
+  const EPOCH_DAYS = 3
+  const estimatedEpochYield = totalTVL > 0 ? (totalTVL * ESTIMATED_APY * EPOCH_DAYS / 365) : 0
+  const epochYield = yieldPool > 0 ? yieldPool : estimatedEpochYield
 
   // Calculate percentages
   const distribution = {
@@ -74,6 +79,59 @@ export default function PlayPage() {
       scissors: calculateScore("scissors"),
     }
     return Object.entries(scores).reduce((a, b) => (a[1] > b[1] ? a : b))[0] as Faction
+  }
+
+  // Calculate potential yield for user's deposit
+  const calculatePotentialYield = (amount: number, faction: Faction | null): number => {
+    if (!amount || !faction) return 0
+
+    // Get faction pool after user deposit
+    const factionPoolMap = { rock: rockPool, paper: paperPool, scissors: scissorsPool }
+    const currentFactionPool = factionPoolMap[faction]
+    const amountInBaseUnits = amount * 1_000_000
+    const newFactionPool = currentFactionPool + amountInBaseUnits
+    const newTotalTVL = totalTVL + amountInBaseUnits
+
+    // Calculate potential epoch yield (projected if currently 0)
+    const projectedEpochYield = yieldPool > 0 
+      ? yieldPool 
+      : (newTotalTVL * ESTIMATED_APY * EPOCH_DAYS / 365)
+
+    if (projectedEpochYield === 0) return 0
+
+    // Calculate new distribution with user's deposit
+    const newDistribution = {
+      rock: faction === "rock" ? newFactionPool : rockPool,
+      paper: faction === "paper" ? newFactionPool : paperPool,
+      scissors: faction === "scissors" ? newFactionPool : scissorsPool,
+    }
+
+    const newDistributionPct = {
+      rock: Math.round((newDistribution.rock / newTotalTVL) * 100),
+      paper: Math.round((newDistribution.paper / newTotalTVL) * 100),
+      scissors: Math.round((newDistribution.scissors / newTotalTVL) * 100),
+    }
+
+    // Calculate score with new distribution
+    const calculateScoreWithNew = (f: Faction) => {
+      const { rock, paper, scissors } = newDistributionPct
+      switch (f) {
+        case "rock": return scissors - paper
+        case "paper": return rock - scissors
+        case "scissors": return paper - rock
+      }
+    }
+
+    const userScore = calculateScoreWithNew(faction)
+
+    // If user faction would win (score > 0), calculate proportional yield
+    if (userScore > 0) {
+      // User gets proportional share of total yield based on their contribution to winning faction
+      const userShare = amountInBaseUnits / newFactionPool
+      return (userShare * projectedEpochYield) / 1_000_000
+    }
+
+    return 0
   }
 
   // TODO: Fetch real history from blockchain events
@@ -424,7 +482,7 @@ export default function PlayPage() {
                       <div className="flex justify-between text-xs sm:text-sm">
                         <span className="text-muted-foreground">{t("play.potentialYield")}</span>
                         <span className="font-mono text-chart-3">
-                          ~${totalTVL > 0 ? ((Number.parseFloat(depositAmount) || 0) * 1_000_000 * epochYield / totalTVL / 1_000_000).toFixed(2) : '0.00'}
+                          ~${calculatePotentialYield(Number.parseFloat(depositAmount) || 0, selectedFaction).toFixed(2)}
                         </span>
                       </div>
                       <div className="flex justify-between text-xs sm:text-sm">

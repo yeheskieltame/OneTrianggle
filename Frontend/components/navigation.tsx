@@ -3,7 +3,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useLanguage } from "@/contexts/language-context"
 import { useAudio } from "@/contexts/audio-context"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,11 @@ export function Navigation() {
   const { isPlaying, togglePlay } = useAudio()
   const currentAccount = useCurrentAccount()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const navItems = [
     { href: "/", label: t("nav.home") },
@@ -88,7 +93,7 @@ export function Navigation() {
           </button>
 
           {/* Connect Wallet */}
-          {currentAccount && (
+          {isMounted && currentAccount && (
             <div className="hidden sm:flex items-center px-3 py-2 rounded-xl bg-primary/10 border border-primary/30">
               <span className="text-xs text-muted-foreground font-mono">
                 {currentAccount.address.slice(0, 6)}...{currentAccount.address.slice(-4)}
@@ -96,7 +101,7 @@ export function Navigation() {
             </div>
           )}
           <div className="wallet-button-wrapper">
-            <ConnectButton />
+            {isMounted && <ConnectButton />}
           </div>
 
           {/* Mobile Menu Toggle */}
