@@ -2,6 +2,32 @@
 
 **No-Loss Gamified Savings Protocol on OneChain**
 
+---
+
+## Quick Access
+
+**Live Demo Application:** [https://one-trianggle.vercel.app](https://one-trianggle.vercel.app)
+
+**Video Demo:** [https://youtu.be/QUS0-dI-vGo](https://youtu.be/QUS0-dI-vGo)
+
+**Download Project (Alternative):** [Google Drive - Download ZIP](https://drive.google.com/drive/folders/11BUyoV9SBKb1uSJMMcR688QJjdSiA98q?usp=drive_link)
+*For judges who prefer to download and run locally without cloning the repository*
+
+---
+
+## Team
+
+**Team Type:** Solo Developer
+
+**Developer:** Yeheskiel Yunus Tame
+- Student at Duta Wacana Christian University
+- Major: Informatics (7th Semester)
+- Role: Fullstack Developer & Web3 Developer
+
+---
+
+##  About
+
 OneTriangle transforms passive DeFi savings into an engaging strategy game. Users deposit USDC into Rock, Paper, or Scissors factions, compete for yield using game theory, and always receive 100% of their principal back—regardless of outcome.
 
 ## Game Mechanics
