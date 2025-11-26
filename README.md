@@ -39,7 +39,7 @@ Scissors Score = (Paper % TVL) - (Rock % TVL)
 
 ## Deployment (OneChain Testnet)
 
-**Status:** ✅ LIVE | **Epoch 1 ends:** November 28, 2025 08:57:59 UTC
+**Status:**  LIVE | **Epoch 1 ends:** November 28, 2025 08:57:59 UTC
 
 ```
 Package ID:     0xbe5ff682041431df2eb1033bee50f8ee81708dd74084b48ec8a69d490ba68762
