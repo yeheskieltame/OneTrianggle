@@ -1,6 +1,7 @@
 "use client"
 
 import { useLanguage } from "@/contexts/language-context"
+import { useContract } from "@/contexts/contract-context"
 import { Navigation } from "@/components/navigation"
 import { StatsCard } from "@/components/stats-card"
 import { FactionIcon } from "@/components/faction-icons"
@@ -23,6 +24,26 @@ import {
 
 export default function HomePage() {
   const { t } = useLanguage()
+  const { vault, isLoading } = useContract()
+
+  // Helper function to format OCT amounts (6 decimals)
+  const formatOCT = (microOCT: string | number) => {
+    const amount = Number(microOCT) / 1_000_000
+    if (amount >= 1_000_000) {
+      return `${(amount / 1_000_000).toFixed(2)}M`
+    } else if (amount >= 1_000) {
+      return `${(amount / 1_000).toFixed(2)}K`
+    }
+    return amount.toFixed(2)
+  }
+
+  // Calculate stats from actual vault data
+  const stats = {
+    tvl: vault ? formatOCT(vault.total_deposited) : "---",
+    players: vault ? vault.total_players : "---",
+    epochsCompleted: vault ? (Number(vault.current_epoch) - 1).toString() : "---",
+    yieldDistributed: vault ? formatOCT(vault.yield_pool) : "---",
+  }
 
   return (
     <main className="min-h-screen relative overflow-hidden">
@@ -121,10 +142,26 @@ export default function HomePage() {
       {/* Stats Section */}
       <section className="relative py-10 sm:py-16 px-3 sm:px-4 z-10">
         <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
-          <StatsCard icon={Coins} label={t("stats.tvl")} value="$2.5M" trend="+15%" />
-          <StatsCard icon={Users} label={t("stats.players")} value="1,432" trend="+124" />
-          <StatsCard icon={Calendar} label={t("stats.epochs")} value="42" />
-          <StatsCard icon={TrendingUp} label={t("stats.yield")} value="$89.2K" trend="+$5.2K" />
+          <StatsCard
+            icon={Coins}
+            label={t("stats.tvl")}
+            value={`${stats.tvl} OCT`}
+          />
+          <StatsCard
+            icon={Users}
+            label={t("stats.players")}
+            value={stats.players}
+          />
+          <StatsCard
+            icon={Calendar}
+            label={t("stats.epochs")}
+            value={stats.epochsCompleted}
+          />
+          <StatsCard
+            icon={TrendingUp}
+            label={t("stats.yield")}
+            value={`${stats.yieldDistributed} OCT`}
+          />
         </div>
       </section>
 
