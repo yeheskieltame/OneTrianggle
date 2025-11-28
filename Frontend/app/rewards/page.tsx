@@ -3,13 +3,13 @@
 import { useState, useMemo } from "react"
 import { useLanguage } from "@/contexts/language-context"
 import { useContract } from "@/contexts/contract-context"
-import { useWithdraw } from "@/hooks/use-contract-transactions"
+import { useWithdraw, useSettleEpoch } from "@/hooks/use-contract-transactions"
 import { useCurrentAccount } from "@mysten/dapp-kit"
 import { Navigation } from "@/components/navigation"
 import { ReceiptCard } from "@/components/receipt-card"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Gift, Wallet, TrendingUp, Clock, AlertCircle, Sparkles } from "lucide-react"
+import { Gift, Wallet, TrendingUp, Clock, AlertCircle, Sparkles, PlayCircle } from "lucide-react"
 import { u64ToNumber, formatUSDC } from "@/lib/onechain"
 import { FACTION_REVERSE } from "@/types/contract"
 
@@ -18,6 +18,7 @@ export default function RewardsPage() {
   const { vault, userReceipts, isLoading, refetch } = useContract()
   const currentAccount = useCurrentAccount()
   const { withdraw, isPending } = useWithdraw()
+  const { settleEpoch, isPending: isSettling } = useSettleEpoch()
   const [claimingReceiptId, setClaimingReceiptId] = useState<string | null>(null)
 
   // Categorize receipts: claimable vs current epoch
@@ -71,6 +72,24 @@ export default function RewardsPage() {
     }
   }
 
+  const handleSettleEpoch = async () => {
+    try {
+      await settleEpoch(() => {
+        refetch()
+      })
+    } catch (error) {
+      console.error("Settle epoch error:", error)
+    }
+  }
+
+  // Check if epoch has ended and can be settled
+  const canSettleEpoch = useMemo(() => {
+    if (!vault) return false
+    const now = Date.now()
+    const epochEnd = u64ToNumber(vault.epoch_end_time)
+    return now >= epochEnd
+  }, [vault])
+
   return (
     <main className="min-h-screen relative overflow-hidden">
       <Navigation />
@@ -122,6 +141,42 @@ export default function RewardsPage() {
           {/* Connected & Loaded */}
           {currentAccount && !isLoading && (
             <>
+              {/* Settle Epoch Alert */}
+              {canSettleEpoch && (
+                <Card className="mb-8 border-primary/50 bg-primary/5 backdrop-blur-sm">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <PlayCircle className="w-5 h-5 text-primary" />
+                          <h3 className="text-lg font-bold text-primary">Epoch Has Ended!</h3>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          The current epoch has ended. Anyone can settle it to start a new epoch and distribute rewards to winners.
+                        </p>
+                        <Button
+                          onClick={handleSettleEpoch}
+                          disabled={isSettling}
+                          className="rounded-xl glow-cyan"
+                        >
+                          {isSettling ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                              Settling...
+                            </>
+                          ) : (
+                            <>
+                              <PlayCircle className="w-4 h-4 mr-2" />
+                              Settle Epoch & Start New Round
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Stats Overview */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
                 <Card className="border-border bg-card/50 backdrop-blur-sm">
