@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Coins, Clock, TrendingUp, History, Wallet, Calculator, Zap, DollarSign } from "lucide-react"
 import { u64ToNumber, formatUSDC } from "@/lib/onechain"
 import { Faction, FACTION_REVERSE } from "@/types/contract"
+import { toast } from "sonner"
 
 interface EpochHistory {
   epoch: number
@@ -160,7 +161,25 @@ export default function PlayPage() {
       return
     }
 
-    const amountInBaseUnits = BigInt(Math.floor(Number.parseFloat(depositAmount) * 1_000_000))
+    // Check if epoch has ended
+    const now = Date.now()
+    if (now >= epochEndTime) {
+      toast.error('Epoch has ended! Please wait for settlement before depositing.')
+      return
+    }
+
+    // depositAmount is already in base units, no conversion needed
+    const amountInBaseUnits = BigInt(depositAmount)
+
+    console.log('Initiating deposit:', {
+      faction: selectedFaction,
+      amountInput: depositAmount,
+      amountInBaseUnits: amountInBaseUnits.toString(),
+      amountInOCT: (Number(amountInBaseUnits) / 1_000_000).toFixed(2) + ' OCT',
+      epochEndTime,
+      currentTime: now,
+      timeLeft: epochEndTime - now,
+    })
 
     try {
       await deposit(coins, amountInBaseUnits, selectedFaction, async () => {
@@ -231,13 +250,15 @@ export default function PlayPage() {
                 <Card className="border-border bg-card/50 backdrop-blur-sm">
                   <CardContent className="p-3">
                     <div className="text-xs text-muted-foreground mb-1">Total TVL</div>
-                    <div className="font-bold font-mono text-lg">${formatUSDC(totalTVL)}</div>
+                    <div className="font-bold font-mono text-sm">{formatUSDC(totalTVL)} OCT</div>
+                    <div className="text-xs text-muted-foreground">{totalTVL.toLocaleString()} units</div>
                   </CardContent>
                 </Card>
                 <Card className="border-primary/30 bg-primary/5 backdrop-blur-sm">
                   <CardContent className="p-3">
                     <div className="text-xs text-muted-foreground mb-1">Epoch Yield</div>
-                    <div className="font-bold font-mono text-lg text-primary">${formatUSDC(epochYield)}</div>
+                    <div className="font-bold font-mono text-sm text-primary">{formatUSDC(epochYield)} OCT</div>
+                    <div className="text-xs text-muted-foreground">{epochYield.toLocaleString()} units</div>
                   </CardContent>
                 </Card>
               </div>
@@ -410,15 +431,15 @@ export default function PlayPage() {
                   <div className="flex justify-between items-center p-4 rounded-xl bg-secondary/50">
                     <span className="text-muted-foreground">{t("play.totalDeposited")}</span>
                     <div className="text-right">
-                      <span className="font-bold font-mono text-xl">${formatUSDC(totalTVL)}</span>
-                      <span className="text-muted-foreground ml-1">USDC</span>
+                      <div className="font-bold font-mono text-lg">{formatUSDC(totalTVL)} OCT</div>
+                      <div className="text-xs text-muted-foreground">{totalTVL.toLocaleString()} units</div>
                     </div>
                   </div>
                   <div className="flex justify-between items-center p-4 rounded-xl bg-primary/10 border border-primary/30">
                     <span className="text-muted-foreground">{t("play.epochYield")}</span>
                     <div className="text-right">
-                      <span className="font-bold font-mono text-xl text-primary">${formatUSDC(epochYield)}</span>
-                      <span className="text-primary/70 ml-1">USDC</span>
+                      <div className="font-bold font-mono text-lg text-primary">{formatUSDC(epochYield)} OCT</div>
+                      <div className="text-xs text-primary/70">{epochYield.toLocaleString()} units</div>
                     </div>
                   </div>
                 </CardContent>
@@ -435,36 +456,62 @@ export default function PlayPage() {
                 <CardContent className="space-y-3 sm:space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-xs sm:text-sm">
-                      <span className="text-muted-foreground">OCT Balance</span>
+                      <span className="text-muted-foreground">OCT Balance (base units)</span>
                       {coinsLoading ? (
                         <span className="font-mono">Loading...</span>
                       ) : (
-                        <span className="font-mono">{formatUSDC(totalBalance.toString())} OCT</span>
+                        <span className="font-mono">{totalBalance.toString()} units</span>
                       )}
                     </div>
                     <div className="relative">
                       <Input
                         type="number"
-                        placeholder="0.00"
+                        placeholder="1000000 (min)"
                         value={depositAmount}
                         onChange={(e) => setDepositAmount(e.target.value)}
-                        className="pr-20 sm:pr-24 text-base sm:text-lg font-mono bg-secondary border-border"
+                        className="pr-24 text-base sm:text-lg font-mono bg-secondary border-border"
                         disabled={!currentAccount || coinsLoading}
                       />
                       <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 sm:gap-2">
                         <button
-                          onClick={() => setDepositAmount(formatUSDC(totalBalance.toString()))}
+                          onClick={() => setDepositAmount(totalBalance.toString())}
                           className="text-xs text-primary font-medium hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
                           disabled={!currentAccount || coinsLoading || totalBalance === 0n}
                         >
                           MAX
                         </button>
-                        <span className="text-muted-foreground text-xs sm:text-sm">OCT</span>
+                        <span className="text-muted-foreground text-xs sm:text-sm">units</span>
                       </div>
                     </div>
-                    {depositAmount && Number.parseFloat(depositAmount) < 1 && (
-                      <p className="text-xs text-destructive">Minimum deposit: 1 OCT</p>
-                    )}
+
+                    {/* Quick amount buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setDepositAmount('1000000')}
+                        className="flex-1 px-3 py-2 text-xs font-medium rounded-lg bg-secondary hover:bg-secondary/80 border border-border"
+                        disabled={!currentAccount || coinsLoading}
+                      >
+                        1 OCT
+                      </button>
+                      <button
+                        onClick={() => setDepositAmount('5000000')}
+                        className="flex-1 px-3 py-2 text-xs font-medium rounded-lg bg-secondary hover:bg-secondary/80 border border-border"
+                        disabled={!currentAccount || coinsLoading}
+                      >
+                        5 OCT
+                      </button>
+                      <button
+                        onClick={() => setDepositAmount('10000000')}
+                        className="flex-1 px-3 py-2 text-xs font-medium rounded-lg bg-secondary hover:bg-secondary/80 border border-border"
+                        disabled={!currentAccount || coinsLoading}
+                      >
+                        10 OCT
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground">
+                      💡 1 OCT = 1,000,000 units (6 decimals). Contract enforces min 1,000,000 units.
+                    </p>
                   </div>
 
                   {selectedFaction && (
@@ -480,14 +527,14 @@ export default function PlayPage() {
                         </span>
                       </div>
                       <div className="flex justify-between text-xs sm:text-sm">
-                        <span className="text-muted-foreground">{t("play.potentialYield")}</span>
-                        <span className="font-mono text-chart-3">
-                          ~${calculatePotentialYield(Number.parseFloat(depositAmount) || 0, selectedFaction).toFixed(2)}
+                        <span className="text-muted-foreground">Amount in OCT</span>
+                        <span className="font-mono text-primary">
+                          {((Number.parseInt(depositAmount) || 0) / 1_000_000).toFixed(2)} OCT
                         </span>
                       </div>
                       <div className="flex justify-between text-xs sm:text-sm">
-                        <span className="text-muted-foreground">If you lose</span>
-                        <span className="font-mono">${(Number.parseFloat(depositAmount) || 0).toFixed(2)} (100%)</span>
+                        <span className="text-muted-foreground">Principal protected</span>
+                        <span className="font-mono text-chart-3">100%</span>
                       </div>
                     </div>
                   )}
@@ -502,7 +549,6 @@ export default function PlayPage() {
                       contractLoading ||
                       coinsLoading ||
                       isDepositing ||
-                      Number.parseFloat(depositAmount) < 1 ||
                       coins.length === 0
                     }
                   >

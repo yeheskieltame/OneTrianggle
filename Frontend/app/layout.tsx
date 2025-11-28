@@ -7,7 +7,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { LanguageProvider } from "@/contexts/language-context"
 import { ContractProvider } from "@/contexts/contract-context"
 import { AudioProvider } from "@/contexts/audio-context"
-import { SuiClientProvider, WalletProvider } from '@mysten/dapp-kit'
+import { SuiClientProvider, WalletProvider, createNetworkConfig } from '@mysten/dapp-kit'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RPC_URL } from '@/lib/onechain'
 import { Toaster } from "@/components/ui/sonner"
@@ -18,14 +18,21 @@ import "./globals.css"
 const orbitron = Orbitron({ subsets: ["latin"], variable: "--font-orbitron" })
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 3,
+      retryDelay: 1000,
+    },
+  },
+})
 
 // OneChain network configuration
-const networks = {
+const { networkConfig } = createNetworkConfig({
   'onechain-testnet': {
     url: RPC_URL,
   },
-}
+})
 
 export default function RootLayout({
   children,
@@ -42,8 +49,11 @@ export default function RootLayout({
       </head>
       <body className={`${orbitron.variable} ${geistMono.variable} font-sans antialiased`}>
         <QueryClientProvider client={queryClient}>
-          <SuiClientProvider networks={networks} defaultNetwork="onechain-testnet">
-            <WalletProvider autoConnect>
+          <SuiClientProvider networks={networkConfig} defaultNetwork="onechain-testnet">
+            <WalletProvider
+              autoConnect
+              preferredWallets={['OneWallet']}
+            >
               <ContractProvider>
                 <AudioProvider>
                   <LanguageProvider>
